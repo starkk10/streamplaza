@@ -1,0 +1,337 @@
+<title>StreamPlaza Tiendas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: guía de canales — cada tienda es un "canal" en una parrilla vertical, buscador fijo arriba */
+:root {
+  --bg: #0d1124;
+  --surface: #151a33;
+  --surface-2: #1d2342;
+  --line: #2a3156;
+  --fg: #eef0fb;
+  --muted: #9aa1c4;
+  --accent: #ffb547;      /* luz de "en vivo" ámbar */
+  --accent-ink: #1b1300;
+  --live: #3ddc97;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f4fa; --surface: #ffffff; --surface-2: #eceef8; --line: #d9dcec;
+    --fg: #141834; --muted: #5d6385; --accent: #c97a00; --accent-ink: #ffffff; --live: #12a26a;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f3f4fa; --surface: #ffffff; --surface-2: #eceef8; --line: #d9dcec;
+  --fg: #141834; --muted: #5d6385; --accent: #c97a00; --accent-ink: #ffffff; --live: #12a26a;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+}
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+header.top { border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 19px; letter-spacing: -0.01em; }
+.brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 14px; }
+nav { display: flex; gap: 6px; flex-wrap: wrap; }
+nav a { color: var(--muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; font-weight: 500; }
+nav a:hover { color: var(--fg); background: var(--surface-2); }
+nav a.on { color: var(--fg); background: var(--surface-2); }
+nav a.cta { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+/* Hero + buscador */
+.hero { padding-block: 44px 24px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 25%, transparent); }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(32px, 6vw, 54px); line-height: 1.02; letter-spacing: -0.03em; margin: 14px 0 12px; text-wrap: balance; max-width: 16ch; }
+h1 em { font-style: normal; color: var(--accent); }
+.lede { color: var(--muted); max-width: 56ch; margin: 0 0 26px; font-size: 16px; }
+
+form.search {
+  display: grid; grid-template-columns: 1fr 200px auto; gap: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px;
+}
+.field { position: relative; min-width: 0; }
+.field svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--muted); pointer-events: none; }
+form.search input, form.search select {
+  width: 100%; height: 46px; border-radius: 10px; border: 1px solid transparent; background: var(--surface-2);
+  padding: 0 12px 0 38px;
+}
+form.search select { padding-left: 12px; cursor: pointer; }
+form.search input::placeholder { color: var(--muted); }
+form.search input:focus, form.search select:focus { border-color: var(--accent); outline: none; }
+.btn { height: 46px; padding: 0 22px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+.btn:hover { filter: brightness(1.08); }
+
+.quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+.quick span { color: var(--muted); font-size: 13px; }
+.chip-btn { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted); }
+.chip-btn:hover, .chip-btn[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
+
+/* Resultados */
+.results-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; padding-block: 18px 12px; border-bottom: 1px solid var(--line); }
+.results-head h2 { font-family: var(--font-display); font-size: 20px; margin: 0; font-weight: 700; }
+.count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sample-note { font-size: 12px; color: var(--muted); }
+
+.list { display: grid; gap: 14px; padding-block: 18px 60px; }
+.shop {
+  display: grid; grid-template-columns: 64px minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px;
+  cursor: pointer; text-align: left; width: 100%;
+  transition: border-color .15s, transform .15s;
+}
+.shop:hover { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); transform: translateY(-1px); }
+.ch { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; display: grid; gap: 8px; justify-items: center; }
+.logo { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 18px; color: #fff; }
+.banner {
+  position: relative; aspect-ratio: 16 / 5; max-width: 100%; border-radius: 10px; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center; padding: 10px 16px; color: #fff;
+}
+.banner b { font-family: var(--font-display); font-weight: 800; font-size: clamp(16px, 2.4vw, 24px); line-height: 1; letter-spacing: -0.02em; text-transform: uppercase; }
+.banner small { font-family: var(--font-mono); font-size: 11px; opacity: .85; letter-spacing: 0.06em; margin-top: 6px; }
+.banner i { position: absolute; right: -20px; bottom: -30px; width: 120px; height: 120px; border-radius: 50%; border: 14px solid rgba(255,255,255,.14); }
+.info { min-width: 0; display: grid; gap: 7px; }
+.info h3 { margin: 0; font-family: var(--font-display); font-size: 19px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.status { font-family: var(--font-body); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--live) 18%, transparent); color: var(--live); }
+.status.off { background: var(--surface-2); color: var(--muted); }
+.tagline { color: var(--muted); font-size: 13px; margin: 0; }
+.tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.tag { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); text-transform: uppercase; letter-spacing: 0.03em; }
+.flags { font-size: 17px; letter-spacing: 2px; line-height: 1.2; }
+.meta { display: flex; gap: 12px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.meta strong { color: var(--fg); }
+
+.empty { text-align: center; padding: 60px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: 16px; }
+.empty b { display: block; color: var(--fg); font-family: var(--font-display); font-size: 18px; margin-bottom: 6px; }
+
+/* Detalle */
+.overlay { position: fixed; inset: 0; background: rgba(5, 7, 18, .6); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); z-index: 20; }
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; width: min(560px, 100%); max-height: 100%; overflow: auto; }
+.sheet .banner { border-radius: 0; aspect-ratio: 16 / 6; }
+.sheet-body { padding: 18px 20px 22px; display: grid; gap: 16px; }
+.sheet h3 { margin: 0; font-family: var(--font-display); font-size: 24px; }
+.sheet h4 { margin: 0 0 8px; font-size: 12px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
+table.prices { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+table.prices td { padding: 7px 0; border-bottom: 1px solid var(--line); }
+table.prices td:last-child { text-align: right; font-weight: 600; }
+.contact { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--surface-2); padding: 10px 12px; border-radius: 10px; }
+.contact code { font-family: var(--font-mono); font-size: 14px; flex: 1; min-width: 0; user-select: all; }
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); height: 36px; padding: 0 14px; }
+.close { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(0,0,0,.45); color: #fff; cursor: pointer; font-size: 18px; }
+
+@media (max-width: 760px) {
+  form.search { grid-template-columns: 1fr 1fr; }
+  form.search .field:first-child { grid-column: 1 / -1; }
+  .shop { grid-template-columns: 52px minmax(0, 1fr); }
+  .shop .banner { grid-column: 1 / -1; order: -1; }
+  .logo { width: 44px; height: 44px; font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) { .shop { transition: none; } .shop:hover { transform: none; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark">▶</span> StreamPlaza</div>
+    <nav aria-label="Principal">
+      <a href="#" class="on">Tiendas</a>
+      <a href="#">Contáctanos</a>
+      <a href="#">Iniciar sesión</a>
+      <a href="#" class="cta">Registra tu tienda</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <div class="eyebrow"><span class="dot"></span> Directorio de tiendas</div>
+    <h1>Encuentra tu tienda de <em>streaming</em> ideal</h1>
+    <p class="lede">Busca por nombre de tienda o plataforma, filtra por país y contacta directo al vendedor.</p>
+
+    <form class="search" id="searchForm" role="search">
+      <div class="field">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Nombre de la tienda o plataforma…" autocomplete="off" aria-label="Buscar tienda o plataforma">
+      </div>
+      <select id="country" aria-label="Filtrar por país"></select>
+      <button class="btn" type="submit">Buscar</button>
+    </form>
+
+    <div class="quick" id="quick"><span>Populares:</span></div>
+  </section>
+
+  <section class="wrap">
+    <div class="results-head">
+      <h2 id="resultsTitle">Todas las tiendas</h2>
+      <div>
+        <span class="count" id="count"></span>
+        <span class="sample-note"> · tiendas de ejemplo</span>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dTitle" id="sheet"></div>
+</div>
+
+<script>
+const COUNTRIES = {
+  PE: ["Perú", "🇵🇪", "S/"], CO: ["Colombia", "🇨🇴", "COP"], MX: ["México", "🇲🇽", "MXN"], EC: ["Ecuador", "🇪🇨", "US$"],
+  BO: ["Bolivia", "🇧🇴", "Bs"], CL: ["Chile", "🇨🇱", "CLP"], AR: ["Argentina", "🇦🇷", "ARS"], VE: ["Venezuela", "🇻🇪", "US$"],
+  US: ["Estados Unidos", "🇺🇸", "US$"], ES: ["España", "🇪🇸", "€"], GT: ["Guatemala", "🇬🇹", "Q"], PA: ["Panamá", "🇵🇦", "US$"],
+  PY: ["Paraguay", "🇵🇾", "₲"], DO: ["Rep. Dominicana", "🇩🇴", "RD$"], CR: ["Costa Rica", "🇨🇷", "₡"], UY: ["Uruguay", "🇺🇾", "UYU"]
+};
+
+// Precios en US$ por mes (perfil), solo de ejemplo
+const SHOPS = [
+  { id: 101, name: "Nova Digital 24/7", tagline: "Servicios digitales · entrega inmediata", hue: 255, open: true, rating: 4.9, sales: 3120,
+    platforms: { Netflix: 4.5, "Disney+": 3, Max: 3, "Prime Video": 2.5, Crunchyroll: 2, Spotify: 3 },
+    countries: ["PE","CO","EC","BO","CL","MX","AR","VE","US","PA","GT"], phone: "+51 912 345 678" },
+  { id: 102, name: "Kanal Shop", tagline: "Streaming sin límites", hue: 150, open: true, rating: 4.7, sales: 1840,
+    platforms: { Netflix: 4, "Disney+": 2.8, Max: 2.8, "Paramount+": 2 },
+    countries: ["CO","PE","MX","EC","CL","DO","CR","PA","GT","AR"], phone: "+57 301 555 0192" },
+  { id: 103, name: "Pantalla Llena", tagline: "Perfiles y cuentas completas", hue: 12, open: false, rating: 4.6, sales: 960,
+    platforms: { Netflix: 4.8, Spotify: 2.5, YouTube: 2.2 },
+    countries: ["MX","GT","US"], phone: "+52 55 4321 9087" },
+  { id: 104, name: "Zona Play", tagline: "Combos familiares al mejor precio", hue: 320, open: true, rating: 4.8, sales: 2205,
+    platforms: { "Disney+": 2.5, "Star+": 2.5, Max: 2.7, "Prime Video": 2, "Apple TV+": 2.5 },
+    countries: ["AR","UY","PY","CL","BO"], phone: "+54 9 11 6123 4455" },
+  { id: 105, name: "Cine en Casa EC", tagline: "Atención de 8 am a 11 pm", hue: 200, open: true, rating: 4.5, sales: 640,
+    platforms: { Netflix: 4.2, "Prime Video": 2.3, Crunchyroll: 1.8, Vix: 1.5 },
+    countries: ["EC","PE","CO"], phone: "+593 99 876 5432" },
+  { id: 106, name: "Señal Premium", tagline: "Revendedores bienvenidos", hue: 45, open: true, rating: 4.9, sales: 4410,
+    platforms: { Netflix: 4, "Disney+": 2.6, Max: 2.6, Spotify: 2.8, YouTube: 2, "Paramount+": 1.9, Canva: 1.5 },
+    countries: ["VE","CO","PE","CL","ES","US","PA","DO"], phone: "+58 414 222 3344" },
+  { id: 107, name: "Altiplano Stream", tagline: "Tu tienda de confianza en Bolivia", hue: 100, open: false, rating: 4.4, sales: 380,
+    platforms: { Netflix: 4.6, "Disney+": 3.1, Spotify: 3 },
+    countries: ["BO","PE"], phone: "+591 7 123 4567" },
+  { id: 108, name: "Maratón Store", tagline: "Garantía de 30 días en todo", hue: 280, open: true, rating: 4.7, sales: 1290,
+    platforms: { Crunchyroll: 1.9, Netflix: 4.4, "Prime Video": 2.4, Max: 2.9 },
+    countries: ["ES","MX","AR","CL"], phone: "+34 611 22 33 44" }
+];
+
+const $ = s => document.querySelector(s);
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const initials = n => n.replace(/[^\p{L}\p{N} ]/gu, "").split(" ").filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function bannerHTML(s) {
+  const plats = Object.keys(s.platforms).slice(0, 4).join(" · ");
+  return `<div class="banner" style="background: linear-gradient(120deg, hsl(${s.hue} 70% 38%), hsl(${(s.hue + 40) % 360} 75% 22%))">
+    <b>${esc(s.name)}</b><small>${esc(plats)}</small><i></i></div>`;
+}
+
+// Selector de países
+const sel = $("#country");
+sel.innerHTML = `<option value="">Todos los países</option>` +
+  Object.entries(COUNTRIES).sort((a, b) => a[1][0].localeCompare(b[1][0]))
+    .map(([k, v]) => `<option value="${k}">${v[1]} ${v[0]}</option>`).join("");
+
+// Plataformas populares
+const POPULAR = ["Netflix", "Disney+", "Max", "Spotify", "Crunchyroll", "Prime Video"];
+const quick = $("#quick");
+POPULAR.forEach(p => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip-btn"; b.textContent = p; b.setAttribute("aria-pressed", "false");
+  b.onclick = () => { $("#q").value = $("#q").value === p ? "" : p; render(); };
+  quick.appendChild(b);
+});
+
+function render() {
+  const q = norm($("#q").value.trim());
+  const c = sel.value;
+  const res = SHOPS.filter(s => {
+    const hay = norm([s.name, s.tagline, ...Object.keys(s.platforms)].join(" "));
+    return (!q || hay.includes(q)) && (!c || s.countries.includes(c));
+  }).sort((a, b) => (b.open - a.open) || (b.rating - a.rating));
+
+  quick.querySelectorAll(".chip-btn").forEach(b => b.setAttribute("aria-pressed", String(norm(b.textContent) === q)));
+  const parts = [];
+  if (q) parts.push(`“${$("#q").value.trim()}”`);
+  if (c) parts.push(`en ${COUNTRIES[c][0]}`);
+  $("#resultsTitle").textContent = parts.length ? `Resultados ${parts.join(" ")}` : "Todas las tiendas";
+  $("#count").textContent = `${res.length} ${res.length === 1 ? "tienda encontrada" : "tiendas encontradas"}`;
+
+  const list = $("#list");
+  if (!res.length) {
+    list.innerHTML = `<div class="empty"><b>No hay tiendas con ese criterio</b>Prueba con otra plataforma o elige “Todos los países”.</div>`;
+    return;
+  }
+  list.innerHTML = res.map(s => `
+    <button class="shop" type="button" data-id="${s.id}" aria-label="Ver ${esc(s.name)}">
+      <div class="ch"><div class="logo" style="background:hsl(${s.hue} 65% 42%)">${initials(s.name)}</div>CH ${s.id}</div>
+      ${bannerHTML(s)}
+      <div class="info">
+        <h3>${esc(s.name)} <span class="status ${s.open ? "" : "off"}">${s.open ? "Atendiendo" : "Cerrado"}</span></h3>
+        <p class="tagline">${esc(s.tagline)}</p>
+        <div class="tags">${Object.keys(s.platforms).map(p => `<span class="tag">${esc(p)}</span>`).join("")}</div>
+        <div class="flags" title="${s.countries.map(k => COUNTRIES[k][0]).join(", ")}">${s.countries.map(k => COUNTRIES[k][1]).join("")}</div>
+        <div class="meta"><span>★ <strong>${s.rating.toFixed(1)}</strong></span><span><strong>${s.sales.toLocaleString("es")}</strong> ventas</span><span>desde <strong>US$ ${Math.min(...Object.values(s.platforms)).toFixed(2)}</strong>/mes</span></div>
+      </div>
+    </button>`).join("");
+}
+
+function openShop(id) {
+  const s = SHOPS.find(x => x.id === id);
+  $("#sheet").innerHTML = `
+    <div style="position:relative">${bannerHTML(s)}<button class="close" id="closeBtn" aria-label="Cerrar">×</button></div>
+    <div class="sheet-body">
+      <div>
+        <h3 id="dTitle">${esc(s.name)}</h3>
+        <p class="tagline">${esc(s.tagline)} · ★ ${s.rating.toFixed(1)} · ${s.open ? "Atendiendo ahora" : "Cerrado por ahora"}</p>
+      </div>
+      <div>
+        <h4>Precios por perfil · 1 mes</h4>
+        <table class="prices"><tbody>
+          ${Object.entries(s.platforms).map(([p, v]) => `<tr><td>${esc(p)}</td><td>US$ ${v.toFixed(2)}</td></tr>`).join("")}
+        </tbody></table>
+      </div>
+      <div>
+        <h4>Vende en</h4>
+        <div class="tags">${s.countries.map(k => `<span class="tag">${COUNTRIES[k][1]} ${COUNTRIES[k][0]}</span>`).join("")}</div>
+      </div>
+      <div>
+        <h4>WhatsApp del vendedor</h4>
+        <div class="contact"><code id="phone">${esc(s.phone)}</code><button class="btn ghost" type="button" id="copyBtn">Copiar</button></div>
+      </div>
+    </div>`;
+  $("#overlay").hidden = false;
+  $("#closeBtn").focus();
+  $("#closeBtn").onclick = closeShop;
+  $("#copyBtn").onclick = e => {
+    const btn = e.currentTarget;
+    navigator.clipboard.writeText(s.phone).then(() => { btn.textContent = "Copiado"; })
+      .catch(() => { const r = document.createRange(); r.selectNodeContents($("#phone")); getSelection().removeAllRanges(); getSelection().addRange(r); btn.textContent = "Selecciona y copia"; });
+  };
+}
+function closeShop() { $("#overlay").hidden = true; }
+
+$("#list").addEventListener("click", e => { const b = e.target.closest(".shop"); if (b) openShop(+b.dataset.id); });
+$("#overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeShop(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeShop(); });
+$("#searchForm").addEventListener("submit", e => { e.preventDefault(); render(); });
+$("#q").addEventListener("input", render);
+sel.addEventListener("change", render);
+document.querySelectorAll("nav a").forEach(a => a.addEventListener("click", e => e.preventDefault()));
+
+render();
+</script>

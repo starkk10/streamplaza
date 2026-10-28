@@ -1,0 +1,1071 @@
+<title>StreamPlaza Panel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: consola del vendedor — barra lateral fija de operaciones, área de trabajo con acciones grandes arriba y vencimientos como lista viva */
+:root {
+  --bg: #0b1020;
+  --panel: #121a30;
+  --panel-2: #19223d;
+  --line: #263257;
+  --fg: #e8ecf8;
+  --muted: #8d97b8;
+  --blue: #4a6cf7;
+  --green: #0f9f6e;
+  --on-color: #ffffff;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --crit: #f87171;
+  --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f1f3f9; --panel: #ffffff; --panel-2: #eef1f8; --line: #dbe0ee; --fg: #131a2e; --muted: #5f6a8a;
+    --blue: #3557e8; --green: #0b8a5f; --ok: #0e9f6e; --warn: #b7791f; --crit: #d63c3c; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f1f3f9; --panel: #ffffff; --panel-2: #eef1f8; --line: #dbe0ee; --fg: #131a2e; --muted: #5f6a8a;
+  --blue: #3557e8; --green: #0b8a5f; --ok: #0e9f6e; --warn: #b7791f; --crit: #d63c3c; color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.app { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 100vh; }
+
+/* Barra lateral */
+aside {
+  background: var(--panel); border-right: 1px solid var(--line);
+  position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; overflow-y: auto;
+  padding-block: 22px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.who { display: grid; justify-items: center; gap: 6px; text-align: center; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--green)); color: var(--on-color); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 22px; }
+.who b { font-family: var(--font-display); font-size: 16px; letter-spacing: .02em; text-transform: uppercase; overflow-wrap: anywhere; }
+.role { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; padding: 3px 12px; border-radius: 6px; background: var(--panel-2); color: var(--muted); }
+nav.side { display: grid; gap: 6px; }
+nav.side button {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; color: var(--muted); font-weight: 600;
+}
+nav.side button:hover { color: var(--fg); background: var(--panel-2); }
+nav.side button[aria-current="page"] { color: var(--on-color); background: var(--blue); border-color: var(--blue); }
+nav.side .badge { margin-left: auto; font-family: var(--font-mono); font-size: 11px; background: var(--crit); color: var(--on-color); border-radius: 999px; padding: 0 7px; }
+nav.side .badge[hidden] { display: none; }
+
+/* Área principal */
+main { min-width: 0; padding-block: 26px 60px; padding-left: 28px; padding-right: max(28px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; align-content: start; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.topbar h1 { margin: 0; font-family: var(--font-display); font-size: 26px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.topbar h1 svg.i { width: 26px; height: 26px; }
+.top-right { display: flex; align-items: center; gap: 12px; }
+#clock { font-style: italic; color: var(--muted); font-variant-numeric: tabular-nums; }
+.round { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; cursor: pointer; color: var(--fg); }
+
+.notice { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; color: var(--muted); font-size: 14px; }
+.notice b { color: var(--fg); }
+
+.view[hidden] { display: none; }
+.view { display: grid; gap: 22px; }
+
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.big {
+  display: flex; align-items: center; gap: 18px; padding: 30px 26px; border: 0; border-radius: 16px; cursor: pointer; text-align: left;
+  color: var(--on-color); font-family: var(--font-display); font-size: 22px; font-weight: 700; transition: transform .15s, filter .15s;
+}
+.big:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.big .ic { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; }
+.big .ic svg.i { width: 26px; height: 26px; }
+.big small { display: block; font-family: var(--font-body); font-size: 13px; font-weight: 600; opacity: .85; }
+.big.blue { background: var(--blue); }
+.big.green { background: var(--green); }
+
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 2px; }
+.kpi span { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.kpi b { font-family: var(--font-display); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.kpi.warn b { color: var(--warn); }
+.kpi.crit b { color: var(--crit); }
+.kpi.ok b { color: var(--ok); }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.card h2 { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card h2 .sub { font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--muted); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 18px; align-items: start; }
+
+.steps { display: grid; }
+.step { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.step:first-child { border-top: 0; }
+.step .ic { width: 40px; height: 40px; border-radius: 50%; background: var(--panel-2); display: grid; place-items: center; color: var(--blue); }
+.step.done .ic { color: var(--ok); }
+.step b { flex: 1; min-width: 160px; font-weight: 700; }
+.step.done b { color: var(--muted); text-decoration: line-through; }
+
+.btn { border: 0; border-radius: 10px; padding: 10px 16px; background: var(--blue); color: var(--on-color); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.btn:hover { filter: brightness(1.08); }
+a.btn { text-decoration: none; }
+.btn.green { background: var(--green); }
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
+.btn.danger { background: transparent; border: 1px solid var(--crit); color: var(--crit); }
+.btn.sm { padding: 6px 11px; font-size: 13px; border-radius: 8px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+form.grid .full { grid-column: 1 / -1; }
+label.f { display: grid; gap: 5px; font-size: 13px; font-weight: 700; color: var(--muted); min-width: 0; }
+input.in, select.in, textarea.in {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--fg); font-weight: 400;
+}
+input.in:focus, select.in:focus, textarea.in:focus { outline: none; border-color: var(--blue); }
+textarea.in { resize: vertical; min-height: 110px; font-family: var(--font-body); }
+.hint { font-size: 12.5px; color: var(--muted); }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; background: var(--panel-2); padding: 9px 12px; white-space: nowrap; }
+td { padding: 10px 12px; border-top: 1px solid var(--line); vertical-align: middle; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .small { display: block; color: var(--muted); font-size: 12.5px; }
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
+.row-actions select.in, .row-actions input.in { width: auto; padding: 6px 8px; font-size: 13px; }
+.row-actions input.in { width: 84px; }
+
+.pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pill.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.pill.crit { background: color-mix(in srgb, var(--crit) 16%, transparent); color: var(--crit); }
+.pill.mute { background: var(--panel-2); color: var(--muted); }
+.ex { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--line); padding: 0 5px; border-radius: 4px; margin-left: 6px; }
+
+.accounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.acc { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; background: var(--panel-2); min-width: 0; }
+.acc-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.acc-top b { font-family: var(--font-display); font-size: 15px; }
+.acc .mail { font-family: var(--font-mono); font-size: 12.5px; overflow-wrap: anywhere; color: var(--muted); }
+.seats { display: flex; gap: 4px; }
+.seats i { flex: 1; height: 8px; border-radius: 3px; background: var(--line); }
+.seats i.on { background: var(--blue); }
+.acc-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+
+.swatch { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; color: #fff; font-family: var(--font-display); font-weight: 700; flex: none; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.plat-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.plat-name b { overflow-wrap: anywhere; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; text-align: center; }
+.stats div { background: var(--panel); border-radius: 8px; padding: 6px 4px; display: grid; }
+.stats b { font-family: var(--font-display); font-size: 17px; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 11px; color: var(--muted); font-weight: 600; }
+a.lnk { color: var(--blue); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+a.lnk:hover { text-decoration: underline; }
+.swatch, .avatar { position: relative; overflow: hidden; }
+.swatch img, .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.swatch.sm { width: 24px; height: 24px; font-size: 12px; border-radius: 6px; }
+.logo-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.logo-row .avatar { width: 56px; height: 56px; font-size: 18px; }
+.logo-row input[type="file"] { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); }
+.msg { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--panel-2); }
+.msg-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+.msg pre { margin: 0; white-space: pre-wrap; font-family: var(--font-body); font-size: 14px; background: var(--panel); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line); }
+.msgs { display: grid; gap: 12px; }
+
+.empty { text-align: center; color: var(--muted); padding: 26px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.empty b { display: block; color: var(--fg); margin-bottom: 4px; }
+
+.money-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.money-row div { background: var(--panel-2); border-radius: 12px; padding: 12px 14px; display: grid; }
+.money-row span { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.money-row b { font-family: var(--font-display); font-size: 22px; font-variant-numeric: tabular-nums; }
+.pos { color: var(--ok); }
+.neg { color: var(--crit); }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.toolbar input.in { max-width: 320px; }
+
+#toast { position: fixed; right: max(20px, env(safe-area-inset-right, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 11px 16px; border-radius: 10px; font-weight: 700; z-index: 30; max-width: calc(100% - 40px); }
+#toast.err { background: var(--crit); color: var(--on-color); }
+
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .two { grid-template-columns: 1fr; } }
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  aside { position: static; height: auto; padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px; gap: 12px; }
+  .who { grid-template-columns: auto 1fr auto; justify-items: start; text-align: left; align-items: center; padding-bottom: 12px; }
+  .avatar { width: 42px; height: 42px; font-size: 16px; }
+  nav.side { display: flex; overflow-x: auto; padding-bottom: 4px; }
+  nav.side button { width: auto; white-space: nowrap; }
+  main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 48px; }
+  .actions { grid-template-columns: 1fr; }
+  .big { padding: 20px; font-size: 19px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  form.grid { grid-template-columns: 1fr; }
+  .money-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #clock { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .big { transition: none; } .big:hover { transform: none; } }
+</style>
+
+<div class="app">
+  <aside>
+    <div class="who">
+      <div class="avatar" id="avatar">SP</div>
+      <b id="shopName">Mi tienda</b>
+      <span class="role">ADMIN</span>
+    </div>
+    <nav class="side" aria-label="Secciones">
+      <button type="button" data-view="vender"><svg class="i" data-icon="cart"></svg>Vender</button>
+      <button type="button" data-view="renovar"><svg class="i" data-icon="refresh"></svg>Renovar</button>
+      <button type="button" data-view="dashboard"><svg class="i" data-icon="home"></svg>Dashboard</button>
+      <button type="button" data-view="recordatorios"><svg class="i" data-icon="bell"></svg>Recordatorios <span class="badge" id="remBadge" hidden>0</span></button>
+      <button type="button" data-view="plataformas"><svg class="i" data-icon="tv"></svg>Plataformas</button>
+      <button type="button" data-view="cuentas"><svg class="i" data-icon="box"></svg>Cuentas</button>
+      <button type="button" data-view="proveedores"><svg class="i" data-icon="users"></svg>Proveedores</button>
+      <button type="button" data-view="historial"><svg class="i" data-icon="clock"></svg>Historial</button>
+      <button type="button" data-view="config"><svg class="i" data-icon="gear"></svg>Configuración</button>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <h1 id="viewTitle"><svg class="i" data-icon="home"></svg><span>Dashboard</span></h1>
+      <div class="top-right">
+        <span id="clock"></span>
+        <button class="round" type="button" id="themeBtn" aria-label="Cambiar tema"><svg class="i" data-icon="moon"></svg></button>
+      </div>
+    </div>
+
+    <div class="notice" id="status">Conectando con tus datos…</div>
+
+    <!-- DASHBOARD -->
+    <section class="view" data-name="dashboard">
+      <div class="actions">
+        <button class="big blue" type="button" data-go="cuentas"><span class="ic"><svg class="i" data-icon="userplus"></svg></span><span>Registrar cuentas<small>Agrega cuentas y perfiles a tu inventario</small></span></button>
+        <button class="big green" type="button" data-go="vender"><span class="ic"><svg class="i" data-icon="cart"></svg></span><span>Vender<small>Asigna un perfil a un cliente</small></span></button>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi ok"><span>Ventas activas</span><b id="kActivas">0</b></div>
+        <div class="kpi warn"><span>Vencen en 3 días</span><b id="kPronto">0</b></div>
+        <div class="kpi crit"><span>Vencidas</span><b id="kVencidas">0</b></div>
+        <div class="kpi"><span>Ganancia del mes</span><b id="kGanancia">0</b></div>
+        <div class="kpi"><span>Perfiles libres</span><b id="kLibres">0</b></div>
+      </div>
+
+      <div class="two">
+        <div class="card">
+          <h2><svg class="i" data-icon="flag"></svg>Completa tu tienda <span class="sub" id="stepsCount"></span></h2>
+          <div class="steps" id="steps"></div>
+        </div>
+        <div class="card">
+          <h2><svg class="i" data-icon="clock"></svg>Próximos vencimientos</h2>
+          <div id="dashUpcoming"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><svg class="i" data-icon="chart"></svg>Ganancias del mes <span class="sub" id="gMes"></span></h2>
+        <div class="money-row">
+          <div><span>Ingresos</span><b id="gIng">0</b></div>
+          <div><span>Gastos en cuentas</span><b id="gGas">0</b></div>
+          <div><span>Ganancia</span><b id="gGan">0</b></div>
+          <div><span>Margen</span><b id="gMar">—</b></div>
+        </div>
+        <div id="gPlat"></div>
+      </div>
+    </section>
+
+    <!-- PLATAFORMAS -->
+    <section class="view" data-name="plataformas" hidden>
+      <div class="two">
+        <div class="card" id="platCard">
+          <h2 id="platFormTitle">Nueva plataforma</h2>
+          <form class="grid" id="fPlat" autocomplete="off">
+            <input type="hidden" id="pfId">
+            <label class="f full">Nombre<input class="in" id="pfNombre" list="presetList" placeholder="Ej. Netflix" required></label>
+            <datalist id="presetList"></datalist>
+            <label class="f">Perfiles por cuenta<input class="in" id="pfPerfiles" type="number" min="1" max="10" value="5" required></label>
+            <label class="f">Color<input class="in" id="pfColor" type="color" value="#4a6cf7" style="height:44px;padding:4px"></label>
+            <label class="f">Precio de venta por perfil<input class="in" id="pfPrecio" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label class="f">Costo de la cuenta<input class="in" id="pfCosto" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label class="f">Duración de la venta<select class="in" id="pfDias"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option><option value="60">60 días</option><option value="90">90 días</option></select></label>
+            <label class="f">Enlace para iniciar sesión<input class="in" id="pfUrl" type="url" placeholder="https://…"></label>
+            <label class="f full needs-assets" hidden>Logo (PNG, JPG, WEBP o SVG)<input class="in" id="pfLogo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><span class="hint" id="pfLogoHint">Si no subes uno, se muestra la inicial con el color elegido.</span></label>
+            <p class="hint full">Estos valores se llenan solos al registrar una cuenta o hacer una venta de esta plataforma. Puedes cambiarlos en cada caso.</p>
+            <div class="full toolbar">
+              <button class="btn" type="submit" id="pfSubmit"><svg class="i" data-icon="plus"></svg>Guardar plataforma</button>
+              <button class="btn ghost" type="button" id="pfCancel" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Tus plataformas <span class="sub" id="platCount"></span></h2>
+          <div class="toolbar" id="presetBar">
+            <button class="btn ghost sm" type="button" id="addPresets"><svg class="i" data-icon="plus"></svg>Agregar plataformas populares</button>
+            <span class="hint" id="presetHint"></span>
+          </div>
+          <div class="accounts" id="platList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUENTAS -->
+    <section class="view" data-name="cuentas" hidden>
+      <div class="two">
+        <div class="card">
+          <h2>Registrar cuenta</h2>
+          <form class="grid" id="fCuenta" autocomplete="off">
+            <label class="f">Plataforma<select class="in" id="cPlat" required></select></label>
+            <label class="f">Perfiles<input class="in" id="cPerfiles" type="number" min="1" max="10" value="5" required></label>
+            <label class="f full">Correo de la cuenta<input class="in" id="cCorreo" type="email" placeholder="cuenta@correo.com" required></label>
+            <label class="f">Costo al proveedor<input class="in" id="cCosto" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label class="f">Vence con el proveedor<input class="in" id="cVence" type="date"></label>
+            <label class="f full">Proveedor<select class="in" id="cProv"></select></label>
+            <p class="hint full">El costo se registra como gasto de hoy y se descuenta de tu ganancia. La contraseña no se guarda aquí: mantenla en tu gestor de contraseñas y envíala por WhatsApp.</p>
+            <div class="full"><button class="btn" type="submit"><svg class="i" data-icon="plus"></svg>Guardar cuenta</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Inventario <span class="sub" id="invCount"></span></h2>
+          <div class="accounts" id="accList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROVEEDORES -->
+    <section class="view" data-name="proveedores" hidden>
+      <div class="two">
+        <div class="card">
+          <h2>Nuevo proveedor</h2>
+          <form class="grid" id="fProv" autocomplete="off">
+            <label class="f full">Nombre<input class="in" id="pNombre" placeholder="Nombre del proveedor" required></label>
+            <label class="f">WhatsApp<input class="in" id="pWa" type="tel" placeholder="+51 900 111 222"></label>
+            <label class="f">Plataformas que vende<input class="in" id="pPlats" placeholder="Netflix, Disney+, Max"></label>
+            <label class="f full">Nota<input class="in" id="pNota" placeholder="Ej. entrega en 10 min, garantía de 25 días"></label>
+            <div class="full"><button class="btn" type="submit"><svg class="i" data-icon="plus"></svg>Guardar proveedor</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Tus proveedores <span class="sub">rendimiento de todo el historial</span></h2>
+          <div id="provList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VENDER -->
+    <section class="view" data-name="vender" hidden>
+      <div class="two">
+        <div class="card">
+          <h2>Nueva venta</h2>
+          <form class="grid" id="fVenta" autocomplete="off">
+            <label class="f full">Cuenta con perfiles libres<select class="in" id="vCuenta" required></select></label>
+            <label class="f">Cliente<input class="in" id="vCliente" placeholder="Nombre del cliente" required></label>
+            <label class="f">WhatsApp del cliente<input class="in" id="vWa" type="tel" placeholder="+51 999 888 777" required></label>
+            <label class="f">Perfil<input class="in" id="vPerfil" placeholder="Perfil 1"></label>
+            <label class="f">PIN del perfil (opcional)<input class="in" id="vPin" inputmode="numeric" maxlength="6"></label>
+            <label class="f">Precio<input class="in" id="vPrecio" type="number" min="0" step="0.01" required></label>
+            <label class="f">Duración<select class="in" id="vDias"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option><option value="60">60 días</option><option value="90">90 días</option></select></label>
+            <label class="f full">Fecha de inicio<input class="in" id="vInicio" type="date" required></label>
+            <div class="full"><button class="btn green" type="submit"><svg class="i" data-icon="cart"></svg>Registrar venta</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Mensaje de entrega</h2>
+          <div id="delivery"><div class="empty"><b>Aquí aparece el mensaje para tu cliente</b>Registra una venta y copia el texto para enviarlo por WhatsApp.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RENOVAR -->
+    <section class="view" data-name="renovar" hidden>
+      <div class="card">
+        <h2>Ventas activas <span class="sub">ordenadas por vencimiento</span></h2>
+        <div class="toolbar"><input class="in" id="rSearch" type="search" placeholder="Buscar cliente, plataforma o correo…"></div>
+        <div id="renewList"></div>
+      </div>
+    </section>
+
+    <!-- RECORDATORIOS -->
+    <section class="view" data-name="recordatorios" hidden>
+      <div class="card">
+        <h2>Clientes por avisar <span class="sub">vencen en 3 días o ya vencieron</span></h2>
+        <div class="msgs" id="remList"></div>
+      </div>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section class="view" data-name="historial" hidden>
+      <div class="card">
+        <h2>Movimientos <span class="sub" id="histSum"></span></h2>
+        <div id="histList"></div>
+      </div>
+    </section>
+
+    <!-- CONFIGURACIÓN -->
+    <section class="view" data-name="config" hidden>
+      <div class="two">
+        <div class="card">
+          <h2>Datos de la tienda</h2>
+          <form class="grid" id="fConfig" autocomplete="off">
+            <label class="f full">Nombre de la tienda<input class="in" id="sNombre" placeholder="Ej. Nova Digital" required></label>
+            <div class="f full">Logo de la tienda
+              <div class="logo-row">
+                <span class="avatar" id="logoPreview">MT</span>
+                <input type="file" id="sLogo" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="needs-assets" hidden aria-label="Subir logo de la tienda">
+                <button class="btn ghost sm needs-assets" type="button" id="rmLogo" hidden>Quitar logo</button>
+                <span class="hint" id="logoHint">Para subir tu logo abre el panel en claude.ai con tu sesión iniciada.</span>
+              </div>
+            </div>
+            <label class="f">WhatsApp de la tienda<input class="in" id="sWa" type="tel" placeholder="+51 912 345 678"></label>
+            <label class="f">Moneda<select class="in" id="sMoneda"><option>S/</option><option>US$</option><option>COP</option><option>MXN</option><option>Bs</option><option>CLP</option><option>ARS</option><option>€</option><option>Q</option></select></label>
+            <label class="f full">Mensaje de recordatorio
+              <textarea class="in" id="sPlantilla"></textarea>
+            </label>
+            <p class="hint full">Puedes usar {cliente}, {plataforma}, {perfil}, {vence}, {precio} y {tienda}.</p>
+            <div class="full"><button class="btn" type="submit">Guardar configuración</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Datos de ejemplo</h2>
+          <p class="hint" style="margin:0">Las filas marcadas como <span class="ex">ejemplo</span> sirven para ver cómo funciona el panel. Bórralas cuando cargues tus cuentas reales.</p>
+          <div><button class="btn danger" type="button" id="clearEx">Borrar datos de ejemplo</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast" hidden></div>
+
+<script>
+const ICONS = {
+  home: '<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  cart: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.2h11L21 7H6"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
+  bell: '<path d="M6 9a6 6 0 1 1 12 0c0 6 3 7.5 3 7.5H3S6 15 6 9"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  gear: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  userplus: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5M19 8v6M16 11h6"/>',
+  flag: '<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 19z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 .8c-.3 1.4-1.4 2-2.5 1.8C10.8 15 8.6 12.8 8 9.8 7.9 8.7 8.6 7.6 10 7.3l.8 2z"/>',
+  store: '<path d="M4 10v10h16V10M3 6l2-3h14l2 3v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/>',
+  check: '<path d="m5 12 5 5 9-10"/>',
+  chart: '<path d="M4 20V11M10 20V5M16 20v-6M2 20h20"/>',
+  tv: '<rect x="2" y="5" width="20" height="13" rx="2"/><path d="M8 21h8M10 9l5 2.5-5 2.5z"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.2.6 3.5 2.8 3.5 6"/>'
+};
+function paintIcons(root = document) {
+  root.querySelectorAll("svg[data-icon]").forEach(s => {
+    if (!s.dataset.painted) { s.setAttribute("viewBox", "0 0 24 24"); s.innerHTML = ICONS[s.dataset.icon] || ""; s.dataset.painted = "1"; }
+  });
+}
+const icon = n => `<svg class="i" viewBox="0 0 24 24">${ICONS[n]}</svg>`;
+
+const PLATAFORMAS = ["Netflix", "Disney+", "Max", "Prime Video", "Spotify", "YouTube Premium", "Crunchyroll", "Paramount+", "Vix", "Apple TV+", "Canva", "Otra"];
+/* Plataformas populares con su página oficial de inicio de sesión */
+const PRESETS = [
+  { nombre: "Netflix", color: "#e50914", perfiles: 5, url: "https://www.netflix.com/login" },
+  { nombre: "Disney+", color: "#113ccf", perfiles: 4, url: "https://www.disneyplus.com/login" },
+  { nombre: "Max", color: "#002be7", perfiles: 5, url: "https://play.max.com/" },
+  { nombre: "Prime Video", color: "#00a8e1", perfiles: 6, url: "https://www.primevideo.com/" },
+  { nombre: "Spotify", color: "#1db954", perfiles: 6, url: "https://accounts.spotify.com/login" },
+  { nombre: "YouTube Premium", color: "#ff0033", perfiles: 6, url: "https://www.youtube.com/premium" },
+  { nombre: "Crunchyroll", color: "#f47521", perfiles: 4, url: "https://www.crunchyroll.com/login" },
+  { nombre: "Paramount+", color: "#0064ff", perfiles: 6, url: "https://www.paramountplus.com/account/signin/" },
+  { nombre: "Vix", color: "#ff5a00", perfiles: 5, url: "https://vix.com/" },
+  { nombre: "Apple TV+", color: "#3a3a3c", perfiles: 6, url: "https://tv.apple.com/" },
+  { nombre: "Canva", color: "#7d2ae8", perfiles: 1, url: "https://www.canva.com/login" }
+];
+/* Logos: el id del archivo se guarda en la base de datos y se muestra desde /_blob/<id> */
+const logoTag = id => /^[0-9a-f]{32}$/.test(id || "") ? `<img src="/_blob/${id}" alt="" onerror="this.remove()">` : "";
+async function uploadLogo(file) {
+  if (!S.assets) { toast("Abre el panel en claude.ai con tu sesión para subir logos.", true); return null; }
+  if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type)) { toast("El logo debe ser PNG, JPG, WEBP o SVG.", true); return null; }
+  if (file.size > 2 * 1024 * 1024) { toast("El logo pesa más de 2 MB. Usa una imagen más liviana.", true); return null; }
+  try { return (await S.assets.upload(file, { type: file.type })).id; }
+  catch (e) {
+    const msg = { too_large: "La imagen es demasiado grande.", unsupported_type: "Ese formato de imagen no se admite.", quota_or_state: "Se llenó el espacio para imágenes. Quita logos que no uses.", rate_limited: "Espera unos segundos y vuelve a intentarlo." }[e && e.code];
+    toast(msg || "No se pudo subir el logo. Inténtalo otra vez.", true); return null;
+  }
+}
+const dropAsset = id => { if (S.assets && id) S.assets.delete(id).catch(() => {}); };
+const safeColor = c => /^#[0-9a-f]{6}$/i.test(c || "") ? c : "#4a6cf7";
+const safeUrl = u => /^https?:\/\/[^\s"'<>]+$/i.test(u || "") ? u : "";
+const DEFAULT_TPL = "Hola {cliente}, te escribe {tienda}. Tu {plataforma} ({perfil}) vence el {vence}. ¿Deseas renovar? El precio es {precio}.";
+const VIEWS = { dashboard: ["home", "Dashboard"], vender: ["cart", "Vender"], renovar: ["refresh", "Renovar"], recordatorios: ["bell", "Recordatorios"], plataformas: ["tv", "Plataformas"], cuentas: ["box", "Cuentas"], proveedores: ["users", "Proveedores"], historial: ["clock", "Historial"], config: ["gear", "Configuración"] };
+
+const S = { db: null, cuentas: [], ventas: [], movs: [], provs: [], plats: [], config: {}, loaded: 0, canWrite: true, view: "dashboard" };
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* Fechas en formato AAAA-MM-DD, siempre en hora local */
+const pad = n => String(n).padStart(2, "0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const today = () => iso(new Date());
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
+const daysLeft = s => Math.round((parse(s) - parse(today())) / 86400000);
+const fmtDate = s => s ? parse(s).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+const money = n => `${S.config.moneda || "S/"} ${(Number(n) || 0).toFixed(2)}`;
+const shopName = () => S.config.nombre || "Mi tienda";
+
+function duePill(s) {
+  const d = daysLeft(s);
+  if (d < 0) return `<span class="pill crit">Vencida hace ${-d} d</span>`;
+  if (d === 0) return `<span class="pill crit">Vence hoy</span>`;
+  if (d <= 3) return `<span class="pill warn">Vence en ${d} d</span>`;
+  return `<span class="pill ok">${d} días</span>`;
+}
+const exTag = r => r.ejemplo ? `<span class="ex">ejemplo</span>` : "";
+
+let toastT;
+function toast(msg, err) {
+  const t = $("#toast"); t.textContent = msg; t.className = err ? "err" : ""; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2800);
+}
+function dbFail(e) {
+  const code = e && e.code;
+  if (code === "invalid_argument") { S.canWrite = false; toast("No tienes permiso para guardar cambios en este panel.", true); }
+  else if (code === "quota_exceeded") toast("Se llenó el espacio de datos. Borra movimientos o cuentas antiguas.", true);
+  else toast("No se pudo guardar. Revisa tu conexión e inténtalo otra vez.", true);
+}
+async function write(fn, okMsg) {
+  if (!S.db) { toast("Abre el panel con tu sesión de Claude para guardar datos.", true); return false; }
+  try { await fn(S.db); if (okMsg) toast(okMsg); return true; }
+  catch (e) {
+    if (e && e.code === "unavailable") {
+      await new Promise(r => setTimeout(r, 600 + Math.random() * 600));
+      try { await fn(S.db); if (okMsg) toast(okMsg); return true; } catch (e2) { dbFail(e2); return false; }
+    }
+    dbFail(e); return false;
+  }
+}
+
+/* Cálculos */
+const activas = () => S.ventas.filter(v => v.estado !== "baja");
+const usados = id => activas().filter(v => v.cuentaId === id).length;
+const libres = c => Math.max(0, (Number(c.perfiles) || 0) - usados(c.id));
+const cuentaDe = v => S.cuentas.find(c => c.id === v.cuentaId);
+/* Una cuenta o venta se vincula a su plataforma por id; si no tiene, por nombre */
+const platDe = r => r && (S.plats.find(p => p.id === r.plataformaId) || S.plats.find(p => (p.nombre || "").toLowerCase() === (r.plataforma || "").toLowerCase()));
+const platNames = () => S.plats.length ? S.plats.map(p => p.nombre).sort((a, b) => a.localeCompare(b)) : PLATAFORMAS;
+/* Ganancias: los movimientos de tipo "compra" son gastos; ventas y renovaciones son ingresos */
+const esGasto = m => m.tipo === "compra";
+const provDe = c => c && S.provs.find(p => p.id === c.proveedorId);
+const provIdDeMov = m => esGasto(m) ? m.proveedorId : cuentaDe(S.ventas.find(v => v.id === m.ventaId) || {})?.proveedorId;
+function resumen(movs) {
+  const ing = movs.filter(m => !esGasto(m)).reduce((a, m) => a + (Number(m.monto) || 0), 0);
+  const gas = movs.filter(esGasto).reduce((a, m) => a + (Number(m.monto) || 0), 0);
+  return { ing, gas, gan: ing - gas };
+}
+const movsDelMes = () => { const mes = today().slice(0, 7); return S.movs.filter(m => (m.fecha || "").startsWith(mes)); };
+const signed = n => `<span class="${n < 0 ? "neg" : "pos"}">${n < 0 ? "− " : ""}${money(Math.abs(n))}</span>`;
+const porAvisar = () => activas().filter(v => daysLeft(v.vence) <= 3).sort((a, b) => a.vence.localeCompare(b.vence));
+
+function fillTpl(v) {
+  return (S.config.plantilla || DEFAULT_TPL)
+    .replaceAll("{cliente}", v.cliente || "").replaceAll("{plataforma}", v.plataforma || "")
+    .replaceAll("{perfil}", v.perfil || "").replaceAll("{vence}", fmtDate(v.vence))
+    .replaceAll("{precio}", money(v.precio)).replaceAll("{tienda}", shopName());
+}
+const waLink = (phone, text) => `https://wa.me/${String(phone || "").replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
+
+/* Render */
+function renderShell() {
+  const n = shopName();
+  $("#shopName").textContent = n;
+  const ini = esc(n.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "MT");
+  $("#avatar").innerHTML = ini + logoTag(S.config.logo);
+  $("#logoPreview").innerHTML = ini + logoTag(S.config.logo);
+  $("#rmLogo").hidden = !S.assets || !S.config.logo;
+  const pend = porAvisar().length;
+  $("#remBadge").textContent = pend; $("#remBadge").hidden = !pend;
+  const st = $("#status");
+  if (!S.db && S.loaded === -1) { st.innerHTML = "<b>Modo vista previa.</b> Abre este panel en claude.ai con tu sesión iniciada para guardar cuentas y ventas."; st.hidden = false; }
+  else if (S.db && S.loaded < 6) { st.textContent = "Cargando tus datos…"; st.hidden = false; }
+  else if (!S.canWrite) { st.innerHTML = "<b>Solo lectura.</b> Puedes ver el panel, pero no guardar cambios."; st.hidden = false; }
+  else st.hidden = true;
+}
+
+function renderDashboard() {
+  const act = activas();
+  const mesMovs = movsDelMes(), r = resumen(mesMovs);
+  $("#kActivas").textContent = act.filter(v => daysLeft(v.vence) >= 0).length;
+  $("#kPronto").textContent = act.filter(v => { const d = daysLeft(v.vence); return d >= 0 && d <= 3; }).length;
+  $("#kVencidas").textContent = act.filter(v => daysLeft(v.vence) < 0).length;
+  $("#kGanancia").innerHTML = signed(r.gan);
+  $("#kLibres").textContent = S.cuentas.reduce((a, c) => a + libres(c), 0);
+
+  $("#gMes").textContent = new Date().toLocaleDateString("es", { month: "long", year: "numeric" });
+  $("#gIng").textContent = money(r.ing);
+  $("#gGas").textContent = money(r.gas);
+  $("#gGan").innerHTML = signed(r.gan);
+  $("#gMar").textContent = r.ing > 0 ? `${Math.round(r.gan / r.ing * 100)} %` : "—";
+  const plats = [...new Set(mesMovs.map(m => m.plataforma || "Otra"))]
+    .map(p => ({ p, ...resumen(mesMovs.filter(m => (m.plataforma || "Otra") === p)) }))
+    .sort((a, b) => b.gan - a.gan);
+  $("#gPlat").innerHTML = plats.length ? `<div class="table-wrap"><table><thead><tr><th>Plataforma</th><th class="num">Ingresos</th><th class="num">Gastos</th><th class="num">Ganancia</th></tr></thead><tbody>
+    ${plats.map(x => `<tr><td>${esc(x.p)}</td><td class="num">${money(x.ing)}</td><td class="num">${money(x.gas)}</td><td class="num">${signed(x.gan)}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty"><b>Sin movimientos este mes</b>Registra cuentas con su costo y haz ventas para ver tu ganancia por plataforma.</div>`;
+
+  const steps = [
+    { done: !!S.config.nombre, ic: "store", t: "Ponle nombre a tu tienda", go: "config", b: "Configurar" },
+    { done: !!S.config.whatsapp, ic: "wa", t: "Agrega el WhatsApp de tu tienda", go: "config", b: "Agregar" },
+    { done: S.plats.some(p => Number(p.precio) > 0 && !p.ejemplo), ic: "tv", t: "Configura tus plataformas y precios", go: "plataformas", b: "Configurar" },
+    { done: S.cuentas.some(c => !c.ejemplo), ic: "box", t: "Registra tu primera cuenta", go: "cuentas", b: "Registrar" },
+    { done: S.ventas.some(v => !v.ejemplo), ic: "cart", t: "Haz tu primera venta", go: "vender", b: "Vender" }
+  ];
+  $("#stepsCount").textContent = `${steps.filter(s => s.done).length} de ${steps.length}`;
+  $("#steps").innerHTML = steps.map(s => `
+    <div class="step ${s.done ? "done" : ""}"><span class="ic">${icon(s.done ? "check" : s.ic)}</span><b>${s.t}</b>
+    ${s.done ? `<span class="pill ok">Listo</span>` : `<button class="btn sm" type="button" data-go="${s.go}">${s.b} →</button>`}</div>`).join("");
+
+  const up = act.slice().sort((a, b) => a.vence.localeCompare(b.vence)).slice(0, 6);
+  $("#dashUpcoming").innerHTML = up.length ? `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Plataforma</th><th>Vence</th></tr></thead><tbody>
+    ${up.map(v => `<tr><td>${esc(v.cliente)}${exTag(v)}<span class="small">${esc(v.whatsapp)}</span></td><td>${esc(v.plataforma)}<span class="small">${esc(v.perfil)}</span></td><td>${duePill(v.vence)}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty"><b>Sin ventas todavía</b>Cuando vendas un perfil, su vencimiento aparece aquí.</div>`;
+}
+
+function renderCuentas() {
+  $("#invCount").textContent = `${S.cuentas.length} cuentas`;
+  const list = S.cuentas.slice().sort((a, b) => (a.plataforma || "").localeCompare(b.plataforma || ""));
+  $("#accList").innerHTML = list.length ? list.map(c => {
+    const u = usados(c.id), n = Number(c.perfiles) || 0;
+    return `<div class="acc">
+      <div class="acc-top"><span class="plat-name"><span class="swatch sm" style="background:${safeColor(platDe(c)?.color)}">${esc((c.plataforma || "?")[0].toUpperCase())}${logoTag(platDe(c)?.logo)}</span><b>${esc(c.plataforma)}${exTag(c)}</b></span><span class="pill ${u >= n ? "mute" : "ok"}">${n - u} libres</span></div>
+      <div class="mail">${esc(c.correo)}</div>
+      <div class="seats" title="${u} de ${n} perfiles vendidos">${Array.from({ length: n }, (_, i) => `<i class="${i < u ? "on" : ""}"></i>`).join("")}</div>
+      <div class="acc-foot"><span>${c.venceProveedor ? "Proveedor: " + duePill(c.venceProveedor) : "Sin fecha de proveedor"}</span>
+        <span>${c.costo ? money(c.costo) : ""}</span></div>
+      <div class="acc-foot"><span>${esc(provDe(c)?.nombre || c.proveedor || "Sin proveedor")}</span>
+        <button class="btn ghost sm" type="button" data-act="provrenew" data-id="${c.id}">Renovar con proveedor</button></div>
+      <div class="acc-foot">${safeUrl(platDe(c)?.url) ? `<a class="lnk" href="${esc(safeUrl(platDe(c).url))}" target="_blank" rel="noopener">${icon("link")}Abrir ${esc(c.plataforma)}</a>` : "<span></span>"}
+        <span class="row-actions" data-del="${c.id}"><button class="btn danger sm" type="button" data-act="askdel">Eliminar</button></span></div>
+    </div>`;
+  }).join("") : `<div class="empty"><b>Tu inventario está vacío</b>Registra una cuenta con el formulario para empezar a vender perfiles.</div>`;
+
+  const ps = $("#cPlat"), pPrev = ps.value;
+  ps.innerHTML = platNames().map(n => `<option>${esc(n)}</option>`).join("");
+  if (platNames().includes(pPrev)) ps.value = pPrev;
+
+  const sel = $("#cProv"), prev = sel.value;
+  sel.innerHTML = `<option value="">Sin proveedor</option>` + S.provs.slice().sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""))
+    .map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join("");
+  if (S.provs.some(p => p.id === prev)) sel.value = prev;
+}
+
+function renderPlataformas() {
+  $("#platCount").textContent = `${S.plats.length} en tu catálogo`;
+  const faltan = PRESETS.filter(x => !S.plats.some(p => (p.nombre || "").toLowerCase() === x.nombre.toLowerCase()));
+  $("#addPresets").hidden = !faltan.length;
+  $("#presetHint").textContent = faltan.length ? `Agrega ${faltan.length} plataformas con su enlace oficial. Luego pon tus precios.` : "";
+  $("#presetList").innerHTML = PRESETS.map(x => `<option value="${esc(x.nombre)}">`).join("");
+  const mes = movsDelMes();
+  const list = S.plats.slice().sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+  $("#platList").innerHTML = list.length ? list.map(p => {
+    const cs = S.cuentas.filter(c => platDe(c) === p);
+    const vs = activas().filter(v => platDe(v) === p);
+    const lib = cs.reduce((a, c) => a + libres(c), 0);
+    const r = resumen(mes.filter(m => (m.plataforma || "").toLowerCase() === (p.nombre || "").toLowerCase()));
+    const url = safeUrl(p.url);
+    return `<div class="acc">
+      <div class="acc-top"><span class="plat-name"><span class="swatch" style="background:${safeColor(p.color)}">${esc((p.nombre || "?")[0].toUpperCase())}${logoTag(p.logo)}</span><b>${esc(p.nombre)}${exTag(p)}</b></span>
+        ${Number(p.precio) > 0 ? `<span class="pill ok">${money(p.precio)}</span>` : `<span class="pill warn">Sin precio</span>`}</div>
+      <div class="hint">${Number(p.perfiles) || 1} perfiles por cuenta · ${Number(p.dias) || 30} días${Number(p.costo) > 0 ? " · costo " + money(p.costo) : ""}</div>
+      <div class="stats"><div><b>${cs.length}</b><span>cuentas</span></div><div><b>${lib}</b><span>libres</span></div><div><b>${vs.length}</b><span>ventas</span></div></div>
+      <div class="acc-foot"><span>Ganancia del mes</span><b>${signed(r.gan)}</b></div>
+      <div class="acc-foot">
+        ${url ? `<a class="lnk" href="${esc(url)}" target="_blank" rel="noopener">${icon("link")}Abrir ${esc(p.nombre)}</a>` : `<span>Sin enlace</span>`}
+        <span class="row-actions" data-delplat="${p.id}">
+          <button class="btn ghost sm" type="button" data-act="editplat">Editar</button>
+          <button class="btn danger sm" type="button" data-act="askdelplat">Eliminar</button>
+        </span></div>
+    </div>`;
+  }).join("") : `<div class="empty"><b>Tu catálogo está vacío</b>Agrega las plataformas populares con un clic o crea la tuya con el formulario.</div>`;
+}
+
+function resetPlatForm() {
+  $("#fPlat").reset(); $("#pfId").value = ""; $("#pfColor").value = "#4a6cf7"; $("#pfDias").value = "30";
+  $("#platFormTitle").textContent = "Nueva plataforma"; $("#pfCancel").hidden = true;
+  $("#pfLogoHint").textContent = "Si no subes uno, se muestra la inicial con el color elegido.";
+}
+
+function renderProveedores() {
+  const rows = S.provs.map(p => {
+    const cs = S.cuentas.filter(c => c.proveedorId === p.id);
+    return { p, cs, ...resumen(S.movs.filter(m => provIdDeMov(m) === p.id)) };
+  }).sort((a, b) => b.gan - a.gan);
+  $("#provList").innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>Proveedor</th><th class="num">Cuentas</th><th class="num">Gastado</th><th class="num">Vendido</th><th class="num">Ganancia</th><th></th></tr></thead><tbody>
+    ${rows.map(({ p, cs, ing, gas, gan }) => `<tr>
+      <td>${esc(p.nombre)}${exTag(p)}<span class="small">${esc([p.plataformas, p.whatsapp].filter(Boolean).join(" · "))}</span>${p.nota ? `<span class="small">${esc(p.nota)}</span>` : ""}</td>
+      <td class="num">${cs.length}</td><td class="num">${money(gas)}</td><td class="num">${money(ing)}</td><td class="num">${signed(gan)}</td>
+      <td><div class="row-actions" data-delprov="${p.id}">
+        ${p.whatsapp ? `<a class="btn green sm" href="${esc(waLink(p.whatsapp, `Hola ${p.nombre}, te escribe ${shopName()}.`))}" target="_blank" rel="noopener">${icon("wa")}Escribir</a>` : ""}
+        <button class="btn danger sm" type="button" data-act="askdelprov">Eliminar</button>
+      </div></td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty"><b>Aún no tienes proveedores</b>Agrega a quien te vende las cuentas para saber cuánto ganas con cada uno.</div>`;
+}
+
+function renderVender() {
+  const sel = $("#vCuenta"), prev = sel.value;
+  const disp = S.cuentas.filter(c => libres(c) > 0);
+  sel.innerHTML = disp.length
+    ? `<option value="">Elige una cuenta…</option>` + disp.map(c => `<option value="${c.id}">${esc(c.plataforma)} · ${esc(c.correo)} (${libres(c)} libres)</option>`).join("")
+    : `<option value="">No hay perfiles libres. Registra una cuenta primero.</option>`;
+  if (disp.some(c => c.id === prev)) sel.value = prev;
+}
+
+function renderRenovar() {
+  const q = $("#rSearch").value.trim().toLowerCase();
+  const rows = activas().filter(v => !q || [v.cliente, v.plataforma, v.whatsapp, cuentaDe(v)?.correo].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => a.vence.localeCompare(b.vence));
+  $("#renewList").innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Plataforma · perfil</th><th>Vence</th><th class="num">Precio</th><th class="num">Renovar</th></tr></thead><tbody>
+    ${rows.map(v => `<tr data-id="${v.id}">
+      <td>${esc(v.cliente)}${exTag(v)}<span class="small">${esc(v.whatsapp)}</span></td>
+      <td>${esc(v.plataforma)}<span class="small">${esc(v.perfil)} · ${esc(cuentaDe(v)?.correo || "cuenta eliminada")}</span></td>
+      <td>${duePill(v.vence)}<span class="small">${fmtDate(v.vence)}</span></td>
+      <td class="num">${money(v.precio)}</td>
+      <td><div class="row-actions">
+        <select class="in" aria-label="Días a renovar" data-f="dias"><option value="30">+30 d</option><option value="7">+7 d</option><option value="15">+15 d</option><option value="60">+60 d</option><option value="90">+90 d</option></select>
+        <input class="in" type="number" min="0" step="0.01" value="${Number(v.precio) || 0}" aria-label="Precio de la renovación" data-f="precio">
+        <button class="btn sm" type="button" data-act="renew">Renovar</button>
+        <button class="btn ghost sm" type="button" data-act="baja">Dar de baja</button>
+      </div></td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty"><b>${q ? "Sin resultados" : "No hay ventas activas"}</b>${q ? "Prueba con otro nombre o plataforma." : "Las ventas que registres aparecen aquí para renovarlas."}</div>`;
+}
+
+function renderRecordatorios() {
+  const rows = porAvisar();
+  $("#remList").innerHTML = rows.length ? rows.map(v => {
+    const txt = fillTpl(v);
+    return `<div class="msg" data-id="${v.id}">
+      <div class="msg-head"><b>${esc(v.cliente)}${exTag(v)} · ${esc(v.plataforma)}</b>${duePill(v.vence)}</div>
+      <pre>${esc(txt)}</pre>
+      <div class="row-actions" style="justify-content:flex-start">
+        <button class="btn sm" type="button" data-act="copy">Copiar mensaje</button>
+        <a class="btn green sm" href="${esc(waLink(v.whatsapp, txt))}" target="_blank" rel="noopener">${icon("wa")}Abrir WhatsApp</a>
+        <span class="hint">${esc(v.whatsapp)}</span>
+      </div></div>`;
+  }).join("") : `<div class="empty"><b>Nadie por avisar</b>Aquí aparecen los clientes cuya venta vence en 3 días o menos.</div>`;
+}
+
+function renderHistorial() {
+  const r = resumen(movsDelMes());
+  $("#histSum").innerHTML = `Este mes: ingresos ${money(r.ing)} · gastos ${money(r.gas)} · ganancia ${signed(r.gan)}`;
+  const rows = S.movs.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const TIPOS = { venta: ["ok", "Venta"], renovacion: ["mute", "Renovación"], compra: ["crit", "Compra"] };
+  $("#histList").innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th class="num">Monto</th></tr></thead><tbody>
+    ${rows.map(m => { const t = TIPOS[m.tipo] || TIPOS.venta; return `<tr><td>${fmtDate(m.fecha)}</td>
+      <td><span class="pill ${t[0]}">${t[1]}</span></td>
+      <td>${esc(esGasto(m) ? (S.provs.find(p => p.id === m.proveedorId)?.nombre || "Proveedor") : m.cliente)}${exTag(m)}<span class="small">${esc(m.plataforma)}${m.dias ? " · " + m.dias + " días" : ""}${esGasto(m) && m.correo ? " · " + esc(m.correo) : ""}</span></td>
+      <td class="num">${esGasto(m) ? signed(-(Number(m.monto) || 0)) : money(m.monto)}</td></tr>`; }).join("")}
+    </tbody></table></div>` : `<div class="empty"><b>Sin movimientos</b>Cada venta y renovación queda registrada aquí con su monto.</div>`;
+}
+
+let configFilled = false;
+function fillConfigForm() {
+  if (configFilled && document.activeElement && document.activeElement.closest("#fConfig")) return;
+  $("#sNombre").value = S.config.nombre || "";
+  $("#sWa").value = S.config.whatsapp || "";
+  $("#sMoneda").value = S.config.moneda || "S/";
+  $("#sPlantilla").value = S.config.plantilla || DEFAULT_TPL;
+  configFilled = true;
+}
+
+function render() {
+  renderShell(); renderDashboard(); renderPlataformas(); renderCuentas(); renderProveedores(); renderVender(); renderRenovar(); renderRecordatorios(); renderHistorial();
+}
+
+function show(view) {
+  if (!VIEWS[view]) view = "dashboard";
+  S.view = view;
+  document.querySelectorAll(".view").forEach(v => v.hidden = v.dataset.name !== view);
+  document.querySelectorAll("nav.side button").forEach(b => b.dataset.view === view ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  $("#viewTitle").innerHTML = `${icon(VIEWS[view][0])}<span>${VIEWS[view][1]}</span>`;
+  if (view === "config") fillConfigForm();
+  try { history.replaceState(null, "", "#" + view); } catch (e) {}
+  window.scrollTo({ top: 0 });
+}
+
+/* Eventos */
+document.addEventListener("click", async e => {
+  const go = e.target.closest("[data-go]"); if (go) { show(go.dataset.go); return; }
+  const nav = e.target.closest("nav.side button"); if (nav) { show(nav.dataset.view); return; }
+  const act = e.target.closest("[data-act]"); if (!act) return;
+  const a = act.dataset.act;
+
+  if (a === "askdel" || a === "nodel") {
+    const box = act.closest("[data-del]"), c = S.cuentas.find(x => x.id === box.dataset.del);
+    if (a === "nodel") { box.innerHTML = `<button class="btn danger sm" type="button" data-act="askdel">Eliminar</button>`; return; }
+    if (usados(c.id)) { toast("Esta cuenta tiene ventas activas. Dales de baja antes de eliminarla.", true); return; }
+    box.innerHTML = `<span class="hint">¿Eliminar?</span><button class="btn danger sm" type="button" data-act="yesdel">Sí</button><button class="btn ghost sm" type="button" data-act="nodel">No</button>`;
+    return;
+  }
+  if (a === "yesdel") {
+    const id = act.closest("[data-del]").dataset.del;
+    await write(db => db.doc("cuentas/" + id).delete(), "Cuenta eliminada");
+    return;
+  }
+  if (a === "askdelprov" || a === "yesdelprov") {
+    const box = act.closest("[data-delprov]"), id = box.dataset.delprov;
+    if (a === "askdelprov") {
+      if (S.cuentas.some(c => c.proveedorId === id)) { toast("Este proveedor tiene cuentas registradas. Elimínalas o cámbialas primero.", true); return; }
+      box.innerHTML = `<span class="hint">¿Eliminar?</span><button class="btn danger sm" type="button" data-act="yesdelprov">Sí</button><button class="btn ghost sm" type="button" data-act="nodelprov">No</button>`;
+      return;
+    }
+    await write(db => db.doc("proveedores/" + id).delete(), "Proveedor eliminado");
+    return;
+  }
+  if (a === "nodelprov") { renderProveedores(); return; }
+  if (a === "editplat" || a === "askdelplat" || a === "yesdelplat" || a === "nodelplat") {
+    const box = act.closest("[data-delplat]"), p = S.plats.find(x => x.id === box.dataset.delplat);
+    if (a === "editplat") {
+      $("#pfId").value = p.id; $("#pfNombre").value = p.nombre || ""; $("#pfPerfiles").value = Number(p.perfiles) || 1;
+      $("#pfColor").value = safeColor(p.color); $("#pfPrecio").value = Number(p.precio) || ""; $("#pfCosto").value = Number(p.costo) || "";
+      $("#pfDias").value = String(Number(p.dias) || 30); $("#pfUrl").value = p.url || "";
+      $("#platFormTitle").textContent = `Editar ${p.nombre}`; $("#pfCancel").hidden = false;
+      $("#pfLogoHint").textContent = p.logo ? "Ya tiene logo. Sube otro solo si quieres cambiarlo." : "Si no subes uno, se muestra la inicial con el color elegido.";
+      $("#platCard").scrollIntoView({ behavior: "smooth", block: "start" }); $("#pfPrecio").focus();
+      return;
+    }
+    if (a === "nodelplat") { renderPlataformas(); return; }
+    if (a === "askdelplat") {
+      if (S.cuentas.some(c => platDe(c) === p)) { toast(`Hay cuentas de ${p.nombre} registradas. Elimínalas antes de quitar la plataforma.`, true); return; }
+      box.innerHTML = `<span class="hint">¿Eliminar?</span><button class="btn danger sm" type="button" data-act="yesdelplat">Sí</button><button class="btn ghost sm" type="button" data-act="nodelplat">No</button>`;
+      return;
+    }
+    if (await write(db => db.doc("plataformas/" + p.id).delete(), `${p.nombre} eliminada del catálogo`) && p.logo) dropAsset(p.logo);
+    if ($("#pfId").value === p.id) resetPlatForm();
+    return;
+  }
+  if (a === "provrenew") {
+    const c = S.cuentas.find(x => x.id === act.dataset.id);
+    const base = !c.venceProveedor || c.venceProveedor < today() ? today() : c.venceProveedor;
+    const nuevo = addDays(base, 30);
+    if (act.dataset.sure !== "1") { act.dataset.sure = "1"; act.textContent = `Confirmar: hasta ${fmtDate(nuevo)} · ${money(c.costo)}`; return; }
+    act.disabled = true;
+    const ok = await write(async db => {
+      await db.doc("cuentas/" + c.id).update({ venceProveedor: nuevo });
+      if (Number(c.costo) > 0) await db.collection("movimientos").add({ tipo: "compra", cuentaId: c.id, proveedorId: c.proveedorId || "", plataforma: c.plataforma, correo: c.correo, monto: Number(c.costo), dias: 30, fecha: today(), ts: Date.now(), ejemplo: !!c.ejemplo });
+    }, `Cuenta renovada con el proveedor hasta el ${fmtDate(nuevo)}`);
+    if (!ok) act.disabled = false;
+    return;
+  }
+  if (a === "renew" || a === "baja") {
+    const tr = act.closest("tr"), v = S.ventas.find(x => x.id === tr.dataset.id);
+    if (a === "baja") {
+      if (act.dataset.sure !== "1") { act.dataset.sure = "1"; act.textContent = "¿Confirmar baja?"; return; }
+      await write(db => db.doc("ventas/" + v.id).update({ estado: "baja" }), `${v.cliente} dado de baja. Su perfil quedó libre.`);
+      return;
+    }
+    const dias = Number(tr.querySelector('[data-f="dias"]').value);
+    const precio = Number(tr.querySelector('[data-f="precio"]').value) || 0;
+    const base = v.vence < today() ? today() : v.vence;
+    const nuevo = addDays(base, dias);
+    act.disabled = true;
+    const ok = await write(async db => {
+      await db.doc("ventas/" + v.id).update({ vence: nuevo, precio });
+      await db.collection("movimientos").add({ tipo: "renovacion", ventaId: v.id, cliente: v.cliente, plataforma: v.plataforma, monto: precio, dias, fecha: today(), ts: Date.now(), ejemplo: !!v.ejemplo });
+    }, `Renovado hasta el ${fmtDate(nuevo)}`);
+    if (!ok) act.disabled = false;
+    return;
+  }
+  if (a === "copy") {
+    const pre = act.closest(".msg, .delivery-box").querySelector("pre");
+    try { await navigator.clipboard.writeText(pre.textContent); act.textContent = "Copiado"; }
+    catch (err) { const r = document.createRange(); r.selectNodeContents(pre); getSelection().removeAllRanges(); getSelection().addRange(r); act.textContent = "Texto seleccionado, cópialo"; }
+  }
+});
+
+$("#rSearch").addEventListener("input", renderRenovar);
+
+$("#fCuenta").addEventListener("submit", async e => {
+  e.preventDefault();
+  const data = {
+    plataforma: $("#cPlat").value, perfiles: Math.max(1, Math.min(10, Number($("#cPerfiles").value) || 1)),
+    correo: $("#cCorreo").value.trim(), costo: Number($("#cCosto").value) || 0,
+    venceProveedor: $("#cVence").value || "", proveedorId: $("#cProv").value, creado: Date.now()
+  };
+  data.plataformaId = platDe(data)?.id || "";
+  if (await write(async db => {
+    const ref = await db.collection("cuentas").add(data);
+    if (data.costo > 0) await db.collection("movimientos").add({ tipo: "compra", cuentaId: ref.id, proveedorId: data.proveedorId, plataforma: data.plataforma, correo: data.correo, monto: data.costo, fecha: today(), ts: Date.now() });
+  }, `Cuenta de ${data.plataforma} guardada`)) {
+    $("#cCorreo").value = ""; $("#cCosto").value = ""; $("#cVence").value = ""; $("#cCorreo").focus();
+  }
+});
+
+$("#vCuenta").addEventListener("change", () => {
+  const c = S.cuentas.find(x => x.id === $("#vCuenta").value);
+  if (!c) return;
+  $("#vPerfil").value = `Perfil ${usados(c.id) + 1}`;
+  const p = platDe(c);
+  if (p && Number(p.precio) > 0) $("#vPrecio").value = Number(p.precio);
+  if (p && p.dias) $("#vDias").value = String(p.dias);
+});
+
+$("#fVenta").addEventListener("submit", async e => {
+  e.preventDefault();
+  const c = S.cuentas.find(x => x.id === $("#vCuenta").value);
+  if (!c || libres(c) < 1) { toast("Elige una cuenta con perfiles libres.", true); return; }
+  const dias = Number($("#vDias").value), inicio = $("#vInicio").value || today();
+  const venta = {
+    cuentaId: c.id, plataforma: c.plataforma, plataformaId: platDe(c)?.id || "", cliente: $("#vCliente").value.trim(), whatsapp: $("#vWa").value.trim(),
+    perfil: $("#vPerfil").value.trim() || `Perfil ${usados(c.id) + 1}`, precio: Number($("#vPrecio").value) || 0,
+    inicio, vence: addDays(inicio, dias), estado: "activa", creado: Date.now()
+  };
+  const pin = $("#vPin").value.trim();
+  let ref;
+  const ok = await write(async db => {
+    ref = await db.collection("ventas").add(venta);
+    await db.collection("movimientos").add({ tipo: "venta", ventaId: ref.id, cliente: venta.cliente, plataforma: venta.plataforma, monto: venta.precio, dias, fecha: today(), ts: Date.now() });
+  }, `Venta registrada: ${venta.cliente}`);
+  if (!ok) return;
+  const txt = `Hola ${venta.cliente}, gracias por tu compra en ${shopName()}.\n\n${venta.plataforma}\nCorreo: ${c.correo}\nContraseña: (te la envío aparte)\nPerfil: ${venta.perfil}${pin ? "\nPIN: " + pin : ""}\nVence: ${fmtDate(venta.vence)}${safeUrl(platDe(c)?.url) ? "\nIngresa aquí: " + safeUrl(platDe(c).url) : ""}\n\nPor favor no cambies la contraseña ni el nombre del perfil.`;
+  $("#delivery").innerHTML = `<div class="msg delivery-box"><pre>${esc(txt)}</pre>
+    <div class="row-actions" style="justify-content:flex-start">
+      <button class="btn sm" type="button" data-act="copy">Copiar mensaje</button>
+      <a class="btn green sm" href="${esc(waLink(venta.whatsapp, txt))}" target="_blank" rel="noopener">${icon("wa")}Abrir WhatsApp</a>
+    </div></div>`;
+  ["#vCliente", "#vWa", "#vPin", "#vPrecio"].forEach(s => $(s).value = "");
+  $("#vInicio").value = today();
+});
+
+$("#pfNombre").addEventListener("change", () => {
+  if ($("#pfId").value) return;
+  const x = PRESETS.find(p => p.nombre.toLowerCase() === $("#pfNombre").value.trim().toLowerCase());
+  if (!x) return;
+  $("#pfColor").value = x.color; $("#pfPerfiles").value = x.perfiles;
+  if (!$("#pfUrl").value) $("#pfUrl").value = x.url;
+});
+$("#pfCancel").addEventListener("click", resetPlatForm);
+
+$("#fPlat").addEventListener("submit", async e => {
+  e.preventDefault();
+  const id = $("#pfId").value;
+  const data = {
+    nombre: $("#pfNombre").value.trim(), perfiles: Math.max(1, Math.min(10, Number($("#pfPerfiles").value) || 1)),
+    color: safeColor($("#pfColor").value), precio: Number($("#pfPrecio").value) || 0, costo: Number($("#pfCosto").value) || 0,
+    dias: Number($("#pfDias").value) || 30, url: safeUrl($("#pfUrl").value.trim())
+  };
+  if ($("#pfUrl").value.trim() && !data.url) { toast("El enlace debe empezar con https://", true); return; }
+  if (S.plats.some(p => p.id !== id && (p.nombre || "").toLowerCase() === data.nombre.toLowerCase())) { toast(`${data.nombre} ya está en tu catálogo.`, true); return; }
+  const file = $("#pfLogo").files[0];
+  const old = id ? S.plats.find(p => p.id === id)?.logo : "";
+  if (file) { const lid = await uploadLogo(file); if (!lid) return; data.logo = lid; }
+  const ok = id
+    ? await write(db => db.doc("plataformas/" + id).update(data), `${data.nombre} actualizada`)
+    : await write(db => db.collection("plataformas").add({ ...data, creado: Date.now() }), `${data.nombre} agregada`);
+  if (ok) { resetPlatForm(); if (file && old) dropAsset(old); }
+  else if (data.logo) dropAsset(data.logo);
+});
+
+$("#addPresets").addEventListener("click", async e => {
+  const b = e.currentTarget;
+  const faltan = PRESETS.filter(x => !S.plats.some(p => (p.nombre || "").toLowerCase() === x.nombre.toLowerCase()));
+  b.disabled = true;
+  await write(async db => {
+    for (const x of faltan) await db.collection("plataformas").add({ ...x, precio: 0, costo: 0, dias: 30, creado: Date.now() });
+  }, `${faltan.length} plataformas agregadas. Ahora ponles precio.`);
+  b.disabled = false;
+});
+
+$("#cPlat").addEventListener("change", () => {
+  const p = platDe({ plataforma: $("#cPlat").value });
+  if (!p) return;
+  $("#cPerfiles").value = Number(p.perfiles) || 1;
+  if (Number(p.costo) > 0) $("#cCosto").value = Number(p.costo);
+});
+
+$("#fProv").addEventListener("submit", async e => {
+  e.preventDefault();
+  const data = { nombre: $("#pNombre").value.trim(), whatsapp: $("#pWa").value.trim(), plataformas: $("#pPlats").value.trim(), nota: $("#pNota").value.trim(), creado: Date.now() };
+  if (await write(db => db.collection("proveedores").add(data), `Proveedor ${data.nombre} guardado`)) {
+    ["#pNombre", "#pWa", "#pPlats", "#pNota"].forEach(s => $(s).value = "");
+  }
+});
+
+$("#fConfig").addEventListener("submit", async e => {
+  e.preventDefault();
+  const data = { nombre: $("#sNombre").value.trim(), whatsapp: $("#sWa").value.trim(), moneda: $("#sMoneda").value, plantilla: $("#sPlantilla").value.trim() || DEFAULT_TPL };
+  await write(db => db.doc("config/tienda").set({ ...S.config, ...data }), "Configuración guardada");
+});
+
+$("#sLogo").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const old = S.config.logo;
+  $("#logoHint").textContent = "Subiendo logo…";
+  const id = await uploadLogo(file);
+  e.target.value = "";
+  $("#logoHint").textContent = "";
+  if (!id) return;
+  if (await write(db => db.doc("config/tienda").set({ ...S.config, logo: id }), "Logo de la tienda actualizado")) { if (old) dropAsset(old); }
+  else dropAsset(id);
+});
+$("#rmLogo").addEventListener("click", async e => {
+  const b = e.currentTarget, old = S.config.logo;
+  if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "Confirmar: quitar logo"; return; }
+  b.dataset.sure = ""; b.textContent = "Quitar logo";
+  const { logo, ...rest } = S.config;
+  if (await write(db => db.doc("config/tienda").set(rest), "Logo quitado")) dropAsset(old);
+});
+
+$("#clearEx").addEventListener("click", async e => {
+  const b = e.currentTarget;
+  const ex = [...S.ventas.map(v => ["ventas", v]), ...S.cuentas.map(c => ["cuentas", c]), ...S.movs.map(m => ["movimientos", m]), ...S.provs.map(p => ["proveedores", p]), ...S.plats.map(p => ["plataformas", p])].filter(([, r]) => r.ejemplo);
+  if (!ex.length) { toast("No quedan datos de ejemplo."); return; }
+  if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = `Confirmar: borrar ${ex.length} filas de ejemplo`; return; }
+  b.disabled = true;
+  await write(async db => { for (const [col, r] of ex) await db.doc(`${col}/${r.id}`).delete(); }, "Datos de ejemplo borrados");
+  b.disabled = false; b.dataset.sure = ""; b.textContent = "Borrar datos de ejemplo";
+});
+
+/* Tema */
+function setTheme(t) { document.documentElement.setAttribute("data-theme", t); try { localStorage.setItem("sp-theme", t); } catch (e) {} }
+try { const t = localStorage.getItem("sp-theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+$("#themeBtn").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  setTheme(cur === "dark" ? "light" : "dark");
+});
+
+/* Reloj */
+function tick() { $("#clock").textContent = new Date().toLocaleString("es", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+tick(); setInterval(tick, 1000);
+
+/* Inicio */
+$("#vInicio").value = today();
+paintIcons();
+show((location.hash || "").slice(1) || "dashboard");
+render();
+
+(async () => {
+  const c = window.claude;
+  const db = c && c.use ? await c.use("db") : null;
+  if (!db) { S.loaded = -1; render(); return; }
+  S.db = db;
+  const user = await c.use("user");
+  S.assets = await c.use("assets");
+  document.querySelectorAll(".needs-assets").forEach(el => el.hidden = !S.assets);
+  if (S.assets) $("#logoHint").textContent = "";
+  render();
+  if (user) { try { const w = await user.can("data.write"); if (w === false) S.canWrite = false; } catch (e) {} }
+  const done = () => { S.loaded++; render(); };
+  const onErr = () => { S.loaded = Math.max(S.loaded, 6); render(); toast("Se perdió la conexión con tus datos. Recarga la página.", true); };
+  const rows = snap => snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  let first = { c: true, v: true, m: true, s: true, p: true, t: true };
+  db.collection("plataformas").onSnapshot(s => { S.plats = rows(s); first.t ? (first.t = false, done()) : render(); }, onErr);
+  db.collection("proveedores").onSnapshot(s => { S.provs = rows(s); first.p ? (first.p = false, done()) : render(); }, onErr);
+  db.collection("cuentas").onSnapshot(s => { S.cuentas = rows(s); first.c ? (first.c = false, done()) : render(); }, onErr);
+  db.collection("ventas").onSnapshot(s => { S.ventas = rows(s); first.v ? (first.v = false, done()) : render(); }, onErr);
+  db.collection("movimientos").orderBy("ts", "desc").limit(500).onSnapshot(s => { S.movs = rows(s); first.m ? (first.m = false, done()) : render(); }, onErr);
+  db.doc("config/tienda").onSnapshot(s => { S.config = s.exists ? { ...s.data() } : {}; if (S.view === "config") fillConfigForm(); first.s ? (first.s = false, done()) : render(); }, onErr);
+})();
+</script>

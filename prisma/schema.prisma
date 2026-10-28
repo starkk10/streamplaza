@@ -1,0 +1,382 @@
+// StreamPlaza — modelo de datos
+// Los importes se guardan en céntimos (Int) para evitar errores de redondeo.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLEADO
+  CLIENTE
+}
+
+enum OrderStatus {
+  PENDIENTE   // creado, esperando pago
+  PAGADO      // pago aprobado por un admin
+  PROCESADO   // pagado, esperando entrega (falta inventario o entrega manual)
+  ENTREGADO
+  CANCELADO
+}
+
+enum OrderChannel {
+  WEB
+  WHATSAPP
+  ADMIN
+}
+
+enum PaymentStatus {
+  EN_REVISION
+  APROBADO
+  RECHAZADO
+  REEMBOLSADO
+}
+
+enum LicenseStatus {
+  DISPONIBLE
+  RESERVADO
+  ENTREGADO
+  VENCIDO
+}
+
+enum DeliveryType {
+  LICENCIA // se entrega un código del inventario
+  MANUAL   // un empleado entrega el acceso y escribe la nota de entrega
+}
+
+enum SubscriptionStatus {
+  ACTIVA
+  VENCIDA
+  CANCELADA
+}
+
+enum DiscountType {
+  PORCENTAJE
+  MONTO
+}
+
+enum NotificationChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum NotificationStatus {
+  PENDIENTE
+  ENVIADA
+  FALLIDA
+  OMITIDA // canal no configurado o sin destinatario
+}
+
+enum TicketStatus {
+  ABIERTO
+  RESPONDIDO
+  CERRADO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  passwordHash String?
+  name         String
+  phone        String?  @unique // formato internacional solo dígitos, ej. 51912345678
+  role         Role     @default(CLIENTE)
+  active       Boolean  @default(true)
+  notifyEmail    Boolean @default(true)
+  notifyWhatsapp Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders        Order[]
+  subscriptions Subscription[]
+  tickets       SupportTicket[]
+  ticketReplies TicketReply[]
+  auditLogs     AuditLog[]
+  reviewedPayments Payment[] @relation("PaymentReviewer")
+  conversation  Conversation?
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  sortOrder Int       @default(0)
+  products  Product[]
+}
+
+model Product {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  shortDescription String   @default("")
+  description  String       @default("")
+  instructions String       @default("") // se muestran al cliente después de la entrega
+  imageUrl     String?
+  categoryId   String?
+  category     Category?    @relation(fields: [categoryId], references: [id])
+  deliveryType DeliveryType @default(LICENCIA)
+  active       Boolean      @default(true)
+  lowStockAlert Int         @default(3)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  plans         Plan[]
+  licenses      License[]
+  subscriptions Subscription[]
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name         String
+  durationDays Int
+  priceCents   Int
+  active       Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  orderItems    OrderItem[]
+  subscriptions Subscription[]
+}
+
+model Coupon {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  description String       @default("")
+  type        DiscountType
+  value       Int          // porcentaje (1-100) o céntimos
+  minTotalCents Int        @default(0)
+  maxUses     Int?
+  uses        Int          @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  orders      Order[]
+}
+
+model Provider {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  contact   String    @default("")
+  note      String    @default("")
+  createdAt DateTime  @default(now())
+  licenses  License[]
+}
+
+model Order {
+  id             String       @id @default(cuid())
+  number         Int          @unique @default(autoincrement())
+  customerId     String
+  customer       User         @relation(fields: [customerId], references: [id])
+  status         OrderStatus  @default(PENDIENTE)
+  channel        OrderChannel @default(WEB)
+  currency       String
+  subtotalCents  Int
+  discountCents  Int          @default(0)
+  totalCents     Int
+  couponId       String?
+  coupon         Coupon?      @relation(fields: [couponId], references: [id])
+  idempotencyKey String?      @unique
+  accessToken    String       @unique // enlace seguro del pedido para el bot
+  renewalOfId    String?      // suscripción que se renueva
+  renewalOf      Subscription? @relation("RenewalOrders", fields: [renewalOfId], references: [id])
+  note           String       @default("")
+  paidAt         DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  items    OrderItem[]
+  payments Payment[]
+
+  @@index([status, createdAt])
+  @@index([customerId])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  planId       String
+  plan         Plan     @relation(fields: [planId], references: [id])
+  productName  String
+  planName     String
+  durationDays Int
+  unitPriceCents Int
+  deliveryNote String?  // entrega manual
+  deliveredAt  DateTime?
+
+  license      License?
+  subscription Subscription?
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  orderId      String
+  order        Order         @relation(fields: [orderId], references: [id])
+  method       String        @default("QR")
+  reference    String        // número de operación del comprobante
+  amountCents  Int           // monto que declara el cliente
+  currency     String
+  receiptPath  String?       // archivo privado en UPLOAD_DIR
+  status       PaymentStatus @default(EN_REVISION)
+  reviewedById String?
+  reviewedBy   User?         @relation("PaymentReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  reviewNote   String        @default("")
+  createdAt    DateTime      @default(now())
+
+  // Un mismo número de operación no se puede usar en dos pagos del mismo método
+  @@unique([method, reference])
+  @@index([status, createdAt])
+}
+
+model License {
+  id          String        @id @default(cuid())
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id])
+  providerId  String?
+  provider    Provider?     @relation(fields: [providerId], references: [id])
+  codeEnc     String        // cifrado AES-256-GCM
+  codeHash    String        @unique // HMAC para impedir duplicados sin guardar el texto
+  last4       String
+  status      LicenseStatus @default(DISPONIBLE)
+  expiresAt   DateTime?
+  orderItemId String?       @unique // un código solo puede pertenecer a una venta
+  orderItem   OrderItem?    @relation(fields: [orderItemId], references: [id])
+  assignedAt  DateTime?
+  createdAt   DateTime      @default(now())
+
+  subscriptions Subscription[]
+
+  @@index([productId, status])
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  customerId  String
+  customer    User               @relation(fields: [customerId], references: [id])
+  productId   String
+  product     Product            @relation(fields: [productId], references: [id])
+  planId      String
+  plan        Plan               @relation(fields: [planId], references: [id])
+  orderItemId String             @unique
+  orderItem   OrderItem          @relation(fields: [orderItemId], references: [id])
+  licenseId   String?
+  license     License?           @relation(fields: [licenseId], references: [id])
+  startAt     DateTime
+  endAt       DateTime
+  status      SubscriptionStatus @default(ACTIVA)
+  cancelledAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  events        SubscriptionEvent[]
+  renewalOrders Order[]            @relation("RenewalOrders")
+
+  @@index([status, endAt])
+  @@index([customerId])
+}
+
+model SubscriptionEvent {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  type           String       // ALTA, RENOVACION, CANCELACION, VENCIMIENTO
+  detail         String       @default("")
+  createdAt      DateTime     @default(now())
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  channel   NotificationChannel
+  to        String
+  event     String
+  subject   String              @default("")
+  body      String
+  status    NotificationStatus  @default(PENDIENTE)
+  attempts  Int                 @default(0)
+  error     String?
+  dedupeKey String              @unique
+  userId    String?
+  sendAfter DateTime            @default(now())
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([status, sendAfter])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model SupportTicket {
+  id         String        @id @default(cuid())
+  customerId String
+  customer   User          @relation(fields: [customerId], references: [id])
+  subject    String
+  status     TicketStatus  @default(ABIERTO)
+  orderId    String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  replies    TicketReply[]
+}
+
+model TicketReply {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id])
+  message   String
+  createdAt DateTime      @default(now())
+}
+
+// Estado de la conversación del bot de WhatsApp por número
+model Conversation {
+  id          String   @id @default(cuid())
+  waId        String   @unique
+  userId      String?  @unique
+  user        User?    @relation(fields: [userId], references: [id])
+  state       String   @default("MENU")
+  data        Json     @default("{}")
+  handoff     Boolean  @default(false) // una persona atiende; el bot no responde
+  lastInboundAt DateTime?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  messages    ConversationMessage[]
+}
+
+model ConversationMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      String       // IN, OUT
+  externalId     String?      @unique // id de mensaje de WhatsApp, evita procesar dos veces
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
